@@ -8,11 +8,28 @@ use Symfony\Component\Finder\Finder;
 
 class Loader implements LoaderConfiguration
 {
-    public function __construct(Finder $finder)
+    public function __construct()
     {
         $this->setDirectoryConfiguration(WPMU_PLUGIN_DIR . '/skypress');
         $this->typeStrategy = TypeStrategy::JSON;
+        $this->setDefaultFinder();
+    }
+
+    protected function setDefaultFinder()
+    {
+        $this->setFinder(new Finder());
+    }
+
+    public function setFinder($finder)
+    {
         $this->finder = $finder;
+
+        return $this;
+    }
+
+    public function getFinder()
+    {
+        return $this->finder;
     }
 
     public function setDirectoryConfiguration(string $directory)
@@ -36,7 +53,7 @@ class Loader implements LoaderConfiguration
     {
         $this->typeData = $typeData;
 
-        return $typeData;
+        return $this;
     }
 
     protected function getDirectoryData()
@@ -55,9 +72,13 @@ class Loader implements LoaderConfiguration
 
     public function getStrategy()
     {
-        $this->finder->files()->in($this->getDirectoryData())->name(sprintf('*%s', $this->getExtension()));
+        try {
+            $this->getFinder()->files()->in($this->getDirectoryData())->name(sprintf('*%s', $this->getExtension()));
+        } catch (\Exception $e) {
+            return null;
+        }
 
-        if (!$this->finder->hasResults()) {
+        if (!$this->getFinder()->hasResults()) {
             return null;
         }
 
@@ -66,13 +87,18 @@ class Loader implements LoaderConfiguration
             $strategy = new JsonStrategy();
         }
 
-        $strategy->setFinder($this->finder);
+        $strategy->setFinder($this->getFinder());
 
         return $strategy;
     }
 
     public function getData()
     {
-        return $this->getStrategy()->getData();
+        $strategy = $this->getStrategy();
+        if (null === $strategy) {
+            return [];
+        }
+
+        return $strategy->getData();
     }
 }
