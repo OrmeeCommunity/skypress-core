@@ -88,24 +88,51 @@ abstract class Kernel
         }
     }
 
-    protected static function buildContainer()
+    protected static function buildCustomPostType()
     {
-        self::getContainer()->set('LoaderConfiguration', 'Skypress\Core\Configuration\Loader', [
-            new \Symfony\Component\Finder\Finder(),
+        self::getContainer()->set('LoaderCustomPostType', '\Skypress\CustomPostType\Configuration\Loader', [
+            self::getContainer()->get('LoaderConfiguration'),
+        ]);
+        self::getContainer()->getBuilder()->getDefinition('LoaderCustomPostType')->setShared(false);
+
+        self::getContainer()->set('RegisterPostType', '\Skypress\CustomPostType\Hooks\RegisterPostType', [
+            self::getContainer()->get('LoaderCustomPostType'),
         ]);
 
+        // @TODO : Too symfony related
+        self::getContainer()->getBuilder()->getDefinition('RegisterPostType')
+            ->addTag('hooks');
+    }
+
+    protected static function buildTaxonomy()
+    {
+        self::getContainer()->set('LoaderTaxonomy', '\Skypress\Taxonomy\Configuration\Loader', [
+            self::getContainer()->get('LoaderConfiguration'),
+        ]);
+
+        self::getContainer()->getBuilder()->getDefinition('LoaderTaxonomy')->setShared(false);
+
+        self::getContainer()->set('RegisterTaxonomy', '\Skypress\Taxonomy\Hooks\RegisterTaxonomy', [
+            self::getContainer()->get('LoaderTaxonomy'),
+        ]);
+
+        // @TODO : Too symfony related
+        self::getContainer()->getBuilder()->getDefinition('RegisterTaxonomy')
+            ->addTag('hooks');
+    }
+
+    protected static function buildContainer()
+    {
+        self::getContainer()->set('LoaderConfiguration', 'Skypress\Core\Configuration\Loader');
+
+        self::getContainer()->getBuilder()->getDefinition('LoaderConfiguration')->setShared(false);
+
         if (true === self::$options['custom-post-type']) {
-            self::getContainer()->set('LoaderCustomPostType', '\Skypress\CustomPostType\Configuration\Loader', [
-                self::getContainer()->get('LoaderConfiguration'),
-            ]);
+            self::buildCustomPostType();
+        }
 
-            self::getContainer()->set('RegisterPostType', '\Skypress\CustomPostType\Hooks\RegisterPostType', [
-                self::getContainer()->get('LoaderCustomPostType'),
-            ]);
-
-            // @TODO : Too symfony related
-            self::getContainer()->getBuilder()->getDefinition('RegisterPostType')
-                ->addTag('hooks');
+        if (true === self::$options['taxonomy']) {
+            self::buildTaxonomy();
         }
     }
 
