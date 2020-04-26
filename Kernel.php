@@ -45,6 +45,7 @@ abstract class Kernel
     {
         foreach (self::getContainer()->getServicesByTag('hooks') as $id => $tags) {
             $class = self::getContainer()->getBuilder()->get($id);
+
             switch (true) {
                 case $class instanceof ExecuteHooksBackend:
                     if (is_admin()) {
@@ -88,6 +89,9 @@ abstract class Kernel
         }
     }
 
+    /**
+     * Build module custom post type.
+     */
     protected static function buildCustomPostType()
     {
         self::getContainer()->set('LoaderCustomPostType', '\Skypress\CustomPostType\Configuration\Loader', [
@@ -104,6 +108,9 @@ abstract class Kernel
             ->addTag('hooks');
     }
 
+    /**
+     * Build module taxonomy.
+     */
     protected static function buildTaxonomy()
     {
         self::getContainer()->set('LoaderTaxonomy', '\Skypress\Taxonomy\Configuration\Loader', [
@@ -121,10 +128,46 @@ abstract class Kernel
             ->addTag('hooks');
     }
 
+    /**
+     * Build module headless.
+     */
+    protected static function buildHeadless()
+    {
+        self::getContainer()->set('ApiMenu', '\Skypress\Headless\Hooks\Api\Menu', [
+            \Skypress\Headless\Settings::getBaseEndpoint(),
+        ]);
+
+        // @TODO : Too symfony related
+        self::getContainer()->getBuilder()->getDefinition('ApiMenu')
+            ->addTag('hooks');
+    }
+
+    /**
+     * Build module menu.
+     */
+    protected static function buildMenu()
+    {
+        self::getContainer()->set('LoaderMenu', '\Skypress\Menu\Configuration\Loader', [
+            self::getContainer()->get('LoaderConfiguration'),
+        ]);
+
+        self::getContainer()->getBuilder()->getDefinition('LoaderMenu')->setShared(false);
+
+        self::getContainer()->set('RegisterMenu', '\Skypress\Menu\Hooks\RegisterMenu', [
+            self::getContainer()->get('LoaderMenu'),
+        ]);
+
+        // @TODO : Too symfony related
+        self::getContainer()->getBuilder()->getDefinition('RegisterMenu')
+            ->addTag('hooks');
+    }
+
+    /**
+     * Build Skypress Container.
+     */
     protected static function buildContainer()
     {
         self::getContainer()->set('LoaderConfiguration', 'Skypress\Core\Configuration\Loader');
-
         self::getContainer()->getBuilder()->getDefinition('LoaderConfiguration')->setShared(false);
 
         if (true === self::$options['custom-post-type']) {
@@ -133,6 +176,14 @@ abstract class Kernel
 
         if (true === self::$options['taxonomy']) {
             self::buildTaxonomy();
+        }
+
+        if (true === self::$options['menu']) {
+            self::buildMenu();
+        }
+
+        if (true === self::$options['headless']) {
+            self::buildHeadless();
         }
     }
 
